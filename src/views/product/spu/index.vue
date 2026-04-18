@@ -17,7 +17,12 @@
               <el-button type="primary" size="default" icon="Plus" title="添加SKU" @click="addSku(row)"></el-button>
               <el-button type="primary" size="default" icon="Edit" title="修改SPU" @click="updateSpu(row)"></el-button>
               <el-button type="primary" size="default" icon="View" title="查看SKU列表" @click="findSku(row)"></el-button>
-              <el-button type="primary" size="default" icon="Delete" title="删除SPU"></el-button>
+              <el-popconfirm :title="`你确定删除${row.spuName}?`" width="200px" @confirm="deleteSpu(row)">
+                <template #reference>
+                  <el-button type="primary" size="default" icon="Delete" title="删除SPU"></el-button>
+                </template>
+              </el-popconfirm>
+
             </template>
           </el-table-column>
         </el-table>
@@ -48,13 +53,14 @@
 </template>
 
 <script setup lang="ts">
-import { reqHasSpu, reqSkulist } from '@/api/product/spu';
+import { reqHasSpu, reqSkulist, reqRemoveSpu } from '@/api/product/spu';
 import { HasSpuResponseData, Records, SpuData, SkuInfoData, SkuData } from '@/api/product/spu/type';
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onBeforeUnmount } from 'vue'
 //引入分类的仓库
 import useCategoryStore from '@/store/category';
 import SkuForm from './skuForm.vue';
 import SpuForm from './spuForm.vue';
+import { ElMessage } from 'element-plus';
 let categoryStore = useCategoryStore();
 //场景的数据
 let scene = ref<number>(0);//0：显示已有SPU  1：添加或者修改已有SPU 2：添加SKU的结构
@@ -143,6 +149,27 @@ const findSku = async (row: SpuData) => {
   }
 
 }
+//删除SPU
+const deleteSpu = async (row: SpuData) => {
+  let result: any = await reqRemoveSpu(row.id as number)
+  if (result.code == 200) {
+    ElMessage({
+      type: 'success',
+      message: '删除成功'
+    });
+    //获取剩余SPU数据
+    getHasSpu(records.value.length > 1 ? pageNo.value : pageNo.value - 1)
+  } else {
+    ElMessage({
+      type: 'error',
+      message: '删除失败'
+    })
+  }
+}
+//路由组件销毁前，清空仓库关于分类的数据
+onBeforeUnmount(() => {
+  categoryStore.$reset();
+})
 </script>
 
 <style scoped></style>
