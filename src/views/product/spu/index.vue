@@ -14,7 +14,7 @@
           <el-table-column label="SPU操作">
             <!--row即为已有的SPU对象-->
             <template #="{ row, $index }">
-              <el-button type="primary" size="default" icon="Plus" title="添加SKU" @click="addSku"></el-button>
+              <el-button type="primary" size="default" icon="Plus" title="添加SKU" @click="addSku(row)"></el-button>
               <el-button type="primary" size="default" icon="Edit" title="修改SPU" @click="updateSpu(row)"></el-button>
               <el-button type="primary" size="default" icon="View" title="查看SKU列表"></el-button>
               <el-button type="primary" size="default" icon="Delete" title="删除SPU"></el-button>
@@ -29,7 +29,7 @@
       <!--添加SPU|修改SPU子组件-->
       <SpuForm ref="spu" v-show="scene == 1" @changeScene="changeScene"></SpuForm>
       <!--添加SKU子组件-->
-      <SkuForm v-show="scene == 2" @changeScene="changeScene"></SkuForm>
+      <SkuForm ref="sku" v-show="scene == 2" @changeScene="changeScene"></SkuForm>
     </el-card>
   </div>
 </template>
@@ -44,7 +44,7 @@ import SkuForm from './skuForm.vue';
 import SpuForm from './spuForm.vue';
 let categoryStore = useCategoryStore();
 //场景的数据
-let scene = ref<number>(2);//0：显示已有SPU  1：添加或者修改已有SPU 2：添加SKU的结构
+let scene = ref<number>(0);//0：显示已有SPU  1：添加或者修改已有SPU 2：添加SKU的结构
 //分页器默认页码
 let pageNo = ref<number>(1);
 //每一页展示几条数据
@@ -57,6 +57,8 @@ let records = ref<any[]>([]);
 let total = ref<number>(0);
 //获取子组件实例SpuForm
 let spu = ref<any>();
+//获取子组件实例SkuForm
+let sku = ref<any>();
 //监听三级分类ID变化
 watch(() => categoryStore.c3Id, () => {
   //务必保证有三级分类ID
@@ -109,9 +111,11 @@ const updateSpu = (row: SpuData) => {
 
 }
 //添加SKU按钮的回调
-const addSku = () => {
+const addSku = (row: SpuData) => {
   //点击添加SKU按钮切换场景
   scene.value = 2;
+  //调用子组件的方法初始化添加SKU的数据
+  sku.value.initSkuData(categoryStore.c1Id, categoryStore.c2Id, row);
 }
 </script>
 
