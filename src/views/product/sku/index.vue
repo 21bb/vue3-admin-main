@@ -1,11 +1,61 @@
 <template>
-  <div>
-    <h1>SKU管理</h1>
-  </div>
+  <el-card>
+    <el-table border style="margin:10px 0px" :data="skuArr">
+      <el-table-column label="序号" type="index" align="center" width="80px"></el-table-column>
+      <el-table-column label="名称" show-overflow-tooltip width="150px" prop="skuName"></el-table-column>
+      <el-table-column label="描述" show-overflow-tooltip width="150px" prop="skuDesc"></el-table-column>
+      <el-table-column label="图片" width="150px">
+        <template #="{ row, $index }">
+          <img :src="row.skuDefaultImg" alt="" style="width:100px;height:100px;">
+        </template>
+      </el-table-column>
+      <el-table-column label="重量" width="150px" prop="weight"></el-table-column>
+      <el-table-column label="价格" width="150px" prop="price"></el-table-column>
+      <el-table-column label="操作" width="250px" fixed="right">
+        <template v-slot="{ row }">
+          <el-button type="primary" size="small" :icon="row.isSale == 1 ? 'Bottom' : 'Top'"></el-button>
+          <el-button type="primary" size="small" icon="Edit"></el-button>
+          <el-button type="primary" size="small" icon="InfoFilled"></el-button>
+          <el-popconfirm :title="`确定删除 ${row.skuName} ?`" width="200px">
+            <template #reference>
+              <el-button type="primary" size="small" icon="Delete"></el-button>
+            </template>
+          </el-popconfirm>
+        </template>
+
+      </el-table-column>
+    </el-table>
+    <el-pagination @size-change="handler" @current-change="getHasSku" :current-page="currentPage4"
+      :page-sizes="[10, 20, 30, 40]" :page-size="10" layout="prev, pager, next, jumper,->,sizes,total" :total="total">
+    </el-pagination>
+  </el-card>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+//引入请求
+import { reqSkuList } from '@/api/product/sku';
+import type { SkuResponseData, SkuData } from '@/api/product/sku/type';
+//分页器当前页码
+let pageNo = ref<number>(1);
+//每一页展示几条数据
+let pageSize = ref<number>(10);
+let total = ref<number>(10);
+let skuArr = ref<SkuData[]>([]);
+//组件挂载完毕
+onMounted(() => {
+  getHasSku();
+});
+const getHasSku = async (pager = 1) => {
+  let result: SkuResponseData = await reqSkuList(pageNo.value, pageSize.value);
+  if (result.code == 200) {
+    total.value = result.data.total;
+    skuArr.value = result.data.records;
+  }
+}
+const handler = (pageSizes: number) => {
+  getHasSku();
+}
 
 </script>
 

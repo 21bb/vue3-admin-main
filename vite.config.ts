@@ -34,7 +34,7 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     // 代理配置（解决 404 跨域）
-    server: {
+ server: {
       proxy: {
         '/api': {
          target: 'http://192.168.10.130:10086',

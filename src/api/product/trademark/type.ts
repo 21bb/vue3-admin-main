@@ -13,11 +13,11 @@ export type Records =TradeMark[];
 //获取已有全部品牌的数据ts类型
 export interface TradeMarkResponData extendsData{
   data:{
-    records:Records,
-    total:number,
-    size:number,
-    current:number,
-    searchCount:boolean,
+    records:number;
+    total:number
+    size:number
+    current:number
+    searchCount:boolean
     pages:number
   }
 }
