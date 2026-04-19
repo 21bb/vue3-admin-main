@@ -13,8 +13,9 @@
       <el-table-column label="价格" width="150px" prop="price"></el-table-column>
       <el-table-column label="操作" width="250px" fixed="right">
         <template v-slot="{ row }">
-          <el-button type="primary" size="small" :icon="row.isSale == 1 ? 'Bottom' : 'Top'"></el-button>
-          <el-button type="primary" size="small" icon="Edit"></el-button>
+          <el-button type="primary" size="small" :icon="row.isSale == 1 ? 'Bottom' : 'Top'"
+            @click="updateSale(row)"></el-button>
+          <el-button type="primary" size="small" icon="Edit" @click="updateSku"></el-button>
           <el-button type="primary" size="small" icon="InfoFilled"></el-button>
           <el-popconfirm :title="`确定删除 ${row.skuName} ?`" width="200px">
             <template #reference>
@@ -34,8 +35,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 //引入请求
-import { reqSkuList } from '@/api/product/sku';
+import { reqCancelSale, reqSaleSku, reqSkuList } from '@/api/product/sku';
 import type { SkuResponseData, SkuData } from '@/api/product/sku/type';
+import { SkuInfoData } from '@/api/product/spu/type';
+import { ElMessage } from 'element-plus';
 //分页器当前页码
 let pageNo = ref<number>(1);
 //每一页展示几条数据
@@ -56,7 +59,36 @@ const getHasSku = async (pager = 1) => {
 const handler = (pageSizes: number) => {
   getHasSku();
 }
-
+//商品的上架与下架的操作
+const updateSale = async (row: SkuData) => {
+  //如果当前商品的isSale==1,说明当前商品是上架的状态->更新为下架
+  //否则else情况与上面情况相反
+  if (row.isSale == 1) {
+    //下架操作
+    await reqCancelSale((row.id as number));
+    //提示信息
+    ElMessage({
+      type: 'success',
+      message: '下架成功',
+    })
+    //发请求获取当前更新完毕的全部已有的KU
+    getHasSku(pageNo.value);
+  } else {
+    //上架操作
+    await reqSaleSku((row.id as number));
+    //提示信息
+    ElMessage({
+      type: 'success',
+      message: '上架成功',
+    })
+    //发请求获取当前更新完毕的全部已有的KU
+    getHasSku(pageNo.value);
+  }
+}
+//更新已有的SKU方法
+const updateSku = () => {
+  ElMessage({ type: 'success', message: '程序员在努力的更新中.....' })
+}
 </script>
 
 <style scoped></style>
