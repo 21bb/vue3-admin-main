@@ -43,7 +43,7 @@
     <!-- 修复：drawer 必须绑定 v-model -->
     <el-drawer v-model="drawer" size="500px">
       <template #header>
-        <h4>添加用户</h4>
+        <h4>{{ userParams.id ? '更新用户' : '添加用户' }}</h4>
       </template>
       <template #default>
         <el-form label-width="80px" :model="userParams" :rules="rules" ref="formRef">
@@ -53,7 +53,7 @@
           <el-form-item label="用户昵称" prop="name">
             <el-input v-model="userParams.name"></el-input>
           </el-form-item>
-          <el-form-item label="用户密码" prop="password">
+          <el-form-item label="用户密码" prop="password" v-if="!userParams.id">
             <el-input v-model="userParams.password"></el-input>
           </el-form-item>
         </el-form>
@@ -110,6 +110,12 @@ const handleCurrentChange = (val: number) => {
 const addUser = () => {
   drawer.value = true;
   Object.assign(userParams, { username: '', name: '', password: '' });
+  //清除上一次的错误的提示信息
+  nextTick(() => {
+    formRef.value.clearValidate('username');
+    formRef.value.clearValidate('name');
+    formRef.value.clearValidate('password');
+  });
 }
 
 const updateUser = (row: User) => {
@@ -119,22 +125,34 @@ const updateUser = (row: User) => {
   nextTick(() => {
     formRef.value.clearValidate('username');
     formRef.value.clearValidate('name');
-    formRef.value.clearValidate('password');
   });
 }
 
 const save = async () => {
-  //点击保存按钮时，务必需要保证表单全部符合条件再去发请求
-  formRef.value.validate()
+  const valid = await formRef.value?.validate();
+  if (!valid) return;
+
   let result: any = await reqAddOrUpdateUser(userParams);
   if (result.code == 200) {
+    ElMessage.success('更新成功，即将跳转到登录页');
+
+    // ==============================================
+    // ✅ 修改的是 admin → 直接清空登录状态 + 跳登录页
+    // ==============================================
+    if (userParams.id == 1) {
+      // 清空本地登录信息（必须加，否则会自动跳首页）
+      localStorage.clear();
+      // 强制跳转到登录页
+      window.location.href = '/login';
+      return;
+    }
+
     drawer.value = false;
-    ElMessage.success(userParams.id ? '更新成功' : '添加成功');
-    getHasUser();
+    getHasUser(pageNo.value);
   } else {
     ElMessage.error('操作失败');
   }
-}
+};
 //校验用户名字回调函数
 const validatorUsername = (rule: any, value: any, callBack: any) => {
   //用户名字|昵称。长度至少五位
