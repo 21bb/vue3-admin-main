@@ -12,7 +12,11 @@ enum API{
   //获取全部职位，当前账号拥有的职位接口
   ALLROLEURL='/admin/acl/user/toAssign/',
   //给已有的用户分配角色接口
-  SETROLE_URL='/admin/acl/user/doAssignRole'
+  SETROLE_URL='/admin/acl/user/doAssignRole',
+  //删除某一个账号
+  DELETEUSER_URL='/admin/acl/user/remove/',
+   // 批量删除用户接口
+  DELETEALLUSER_URL = '/admin/acl/user/batchRemove',
 }
 //获取用户账号信息的接口
 export const reqUserInfo=(page:number,limit:number)=>request.get<any,UserResponseData>(API.ALLUSER_URL+`${page}/${limit}`)
@@ -29,3 +33,10 @@ export const reqAddOrUpdateUser=(data:User)=>{
 export const reqAllRole=(userId:number)=>request.get<any,AllRoleResponseData>(API.ALLROLEURL+userId);
 // 分配职务
 export const reqSetUserRole = (data: SetRoleData) => request.post<any, any>(API.SETROLE_URL, data)
+// 删除某一个账号的信息
+export const reqRemoveUser = (userId: number) =>
+  request.delete<any, any>(API.DELETEUSER_URL + userId)
+
+// 批量删除账号接口
+export const reqSelectBatchUser = (idList: number[]) =>
+  request.delete(API.DELETEALLUSER_URL, { data: idList })

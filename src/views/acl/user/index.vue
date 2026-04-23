@@ -13,9 +13,10 @@
     </el-card>
     <el-card style="margin:10px 0px;">
       <el-button type="primary" size="default" @click="addUser">添加用户</el-button>
-      <el-button type="primary" size="default">批量删除</el-button>
+      <el-button type="primary" size="default" :disabled="selectIdArr.length ? false : true"
+        @click="deleteSelectUser">批量删除</el-button>
 
-      <el-table style="margin:10px 0px;" border :data="userArr">
+      <el-table @selection-change="selectChange" style="margin:10px 0px;" border :data="userArr">
         <el-table-column type="selection" align="center"></el-table-column>
         <el-table-column label="#" align="center"></el-table-column>
         <el-table-column label="ID" prop="id" align="center" width="80" />
@@ -30,7 +31,11 @@
           <template #default="scope">
             <el-button type="primary" size="small" icon="User" @click="setRole(scope.row)">分配角色</el-button>
             <el-button type="primary" size="small" icon="Edit" @click="updateUser(scope.row)">编辑</el-button>
-            <el-button type="primary" size="small" icon="Delete">删除</el-button>
+            <el-popconfirm :title="`你确定要删除${scope.row.username}?`" width="260px" @confirm="deleteUser(scope.row.id)">
+              <template #reference>
+                <el-button type="primary" size="small" icon="Delete">删除</el-button>
+              </template>
+            </el-popconfirm>
           </template>
         </el-table-column>
       </el-table>
@@ -102,7 +107,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, reactive, nextTick } from 'vue'
-import { reqAddOrUpdateUser, reqAllRole, reqUserInfo, reqSetUserRole } from '@/api/acl/user/index'
+import { reqAddOrUpdateUser, reqAllRole, reqUserInfo, reqSetUserRole, reqRemoveUser, reqSelectBatchUser } from '@/api/acl/user/index'
 import { type UserResponseData, type Records, type User, AllRole, AllRoleResponseData, SetRoleData } from '@/api/acl/user/type';
 import { ElMessage } from 'element-plus';
 
@@ -112,6 +117,8 @@ let total = ref<number>(0);
 let userArr = ref<Records[]>([]);
 let drawer = ref<boolean>(false);
 let drawer1 = ref<boolean>(false);
+//准备一个数组存储批量删除的用户的ID
+let selectIdArr = ref<User[]>([]);
 //获取form组件实例
 let formRef = ref<any>();
 let userParams = reactive<User>({
@@ -283,6 +290,32 @@ const confirmClick = async () => {
     getHasUser(pageNo.value);
   }
 };
+//删除某一个用户
+const deleteUser = async (userId: number) => {
+  let result: any = await reqRemoveUser(userId);
+  if (result.code == 200) {
+    ElMessage({ type: 'success', message: '删除成功' });
+    getHasUser(userArr.value.length > 1 ? pageNo.value : pageNo.value - 1)
+  }
+}
+//table复选框勾选的时候会触发的事件
+const selectChange = (value: any) => {
+  selectIdArr.value = value;
+}
+//批量删除按钮的回调
+const deleteSelectUser = async () => {
+  //整理批量删除的参数
+  let idslist: any = selectIdArr.value.map(item => {
+    return item.id;
+  })
+  //批量删除的请求
+  let result: any = await reqSelectBatchUser(idslist);
+  if (result.code == 200) {
+    ElMessage({ type: 'success', message: '删除成功' });
+    getHasUser(userArr.value.length > 1 ? pageNo.value : pageNo.value - 1)
+  }
+
+}
 </script>
 
 <style scoped>
