@@ -28,7 +28,7 @@
         <!-- 修复：操作列插槽 -->
         <el-table-column label="操作" width="260px" align="center">
           <template #default="scope">
-            <el-button type="primary" size="small" icon="User">分配角色</el-button>
+            <el-button type="primary" size="small" icon="User" @click="setRole(scope.row)">分配角色</el-button>
             <el-button type="primary" size="small" icon="Edit" @click="updateUser(scope.row)">编辑</el-button>
             <el-button type="primary" size="small" icon="Delete">删除</el-button>
           </template>
@@ -65,13 +65,45 @@
         </div>
       </template>
     </el-drawer>
+    <!-- 抽屉结构：完成添加新的用户账号|更新已有的账号信息 -->
+    <el-drawer v-model="drawer1" size="500px">
+      <template #header>
+        <h4>分配角色(职位)</h4>
+      </template>
+      <template #default>
+        <el-form>
+          <el-form-item label="用户姓名">
+            <el-input v-model="userParams.username"></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-form-item label="职位列表"></el-form-item>
+            <el-checkbox v-model="checkAll" :indeterminate="indeterminate"
+              @change="handleCheckAllChange">全选</el-checkbox>
+          </el-form-item>
+          <!--显示职位的复选框-->
+          <el-form-item>
+            <el-checkbox-group v-model="userRole" @change=handleCheckedCitiesChange>
+              <el-checkbox v-for="(role, index) in allRole" :label="role.id" :key="index">{{ role.roleName
+              }}</el-checkbox>
+            </el-checkbox-group>
+          </el-form-item>
+
+        </el-form>
+      </template>
+      <template #footer>
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+          <el-button @click="drawer1 = false">取消</el-button>
+          <el-button type="primary" @click="confirmClick">确定</el-button>
+        </div>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, reactive, nextTick } from 'vue'
-import { reqAddOrUpdateUser, reqUserInfo } from '@/api/acl/user/index'
-import type { UserResponseData, Records, User } from '@/api/acl/user/type';
+import { reqAddOrUpdateUser, reqAllRole, reqUserInfo, reqSetUserRole } from '@/api/acl/user/index'
+import { type UserResponseData, type Records, type User, AllRole, AllRoleResponseData, SetRoleData } from '@/api/acl/user/type';
 import { ElMessage } from 'element-plus';
 
 let pageNo = ref<number>(1);
@@ -79,6 +111,7 @@ let pageSize = ref<number>(5);
 let total = ref<number>(0);
 let userArr = ref<Records[]>([]);
 let drawer = ref<boolean>(false);
+let drawer1 = ref<boolean>(false);
 //获取form组件实例
 let formRef = ref<any>();
 let userParams = reactive<User>({
@@ -134,7 +167,7 @@ const save = async () => {
 
   let result: any = await reqAddOrUpdateUser(userParams);
   if (result.code == 200) {
-    ElMessage.success('更新成功，即将跳转到登录页');
+    ElMessage.success('更新成功');
 
     // ==============================================
     // ✅ 修改的是 admin → 直接清空登录状态 + 跳登录页
@@ -189,6 +222,67 @@ const rules = {
   //用户密码
   password: [{ required: true, trigger: 'blur', validator: validatorPassword }]
 }
+//全选复选框收集数据：是否全选
+let checkAll = ref<boolean>(false);
+//设置不确定状态，仅负责样式控制
+const indeterminate = ref<boolean>(true);
+// 现在只存id数组，number类型
+const userRole = ref<number[]>([])
+let allRole = ref<AllRole[]>([]);
+//全选复选框的change事件
+const handleCheckAllChange = (val: boolean) => {
+  userRole.value = val ? allRole.value.map(item => item.id) : [];
+  indeterminate.value = false;
+}
+//底部的复选框change事件
+const handleCheckedCitiesChange = (value: number[]) => {
+  //已经勾选的这些项目的长度
+  const checkedCount = value.length;
+  checkAll.value = checkedCount === allRole.value.length;
+  //顶部的复选框不确定的样式
+  indeterminate.value = !(checkedCount === allRole.value.length)
+}
+//分配角色按钮的回调
+const setRole = async (row: User) => {
+  //存储已有的用户信息
+  Object.assign(userParams, row);
+  //获取全部的职位的数据与当前用户已有的职位的数据
+  let result: AllRoleResponseData = await reqAllRole((userParams.id as number));
+  if (result.code == 200) {
+    //存储全部的职位
+    allRole.value = result.data.allRolesList;
+    //存储当前用户已有的职位
+    userRole.value = result.data.assignRoles;
+    //抽屉显示出来
+    drawer1.value = true;
+  }
+}
+//确定按钮的回调（分配职位）
+/*const confirmClick = () => {
+  //收集参数
+  let data: SetRoleData = {
+    userId: (userParams.id as number),
+    roleIdList: userRole.value,
+  }
+  console.log(data);
+
+}*/
+const confirmClick = async () => {
+  let data: SetRoleData = {
+    userId: userParams.id as number,
+    roleIdList: userRole.value,
+  };
+  //分配用户的职位
+  let result: any = await reqSetUserRole(data);
+  if (result.code == 200) {
+    //提示信息
+    ElMessage({ type: 'success', message: '分配职务成功' });
+    //关闭抽屉
+    drawer1.value = false;
+    //获取更新完毕用户的信息,更新完毕留在当前页
+    getHasUser(pageNo.value);
+  }
+};
 </script>
 
 <style scoped>
